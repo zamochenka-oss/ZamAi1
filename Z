@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ZamAI Pro — свободный чат</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+    background: #0d0d18;
+    color: #e8e8f0;
+    display: flex;
+    flex-direction: column;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  header {
+    background: linear-gradient(180deg, #1a1a2e, #15152a);
+    border-bottom: 1px solid #2a2a4a;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    z-index: 10;
+    box-shadow: 0 2px 20px rgba(120,80,255,0.15);
+  }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-icon {
+    width: 34px; height: 34px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #7c5cff, #4a2fc4);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    box-shadow: 0 0 20px rgba(124,92,255,0.6);
+  }
+  .logo-text .name {
+    background: linear-gradient(90deg, #a88cff, #7c5cff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 17px;
+    font-weight: 700;
+  }
+  .logo-text .tag {
+    font-size: 10px;
+    color: #6a6a8a;
+    letter-spacing: 0.5px;
+  }
+  .status {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px;
+    color: #7cffb0;
+    background: rgba(124,255,176,0.1);
+    padding: 4px 10px;
+    border-radius: 12px;
+    border: 1px solid rgba(124,255,176,0.3);
+  }
+  .status-dot {
+    width: 6px; height: 6px;
+    background: #7cffb0;
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .chat {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 16px 240px 16px;
+    scroll-behavior: smooth;
+  }
+  .chat::-webkit-scrollbar { width: 6px; }
+  .chat::-webkit-scrollbar-thumb { background: #3a3a5a; border-radius: 3px; }
+  .chat::-webkit-scrollbar-thumb:hover { background: #7c5cff; }
+
+  .msg {
+    max-width: 800px;
+    margin: 0 auto 20px;
+    display: flex;
+    gap: 12px;
+    animation: msgIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes msgIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .msg-avatar {
+    width: 34px; height: 34px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 600;
+  }
+  .msg.user .msg-avatar {
+    background: linear-gradient(135deg, #4a4a6a, #2a2a42);
+    color: #c8c8e0;
+    border: 1px solid #3a3a5a;
+  }
+  .msg.bot .msg-avatar {
+    background: linear-gradient(135deg, #7c5cff, #4a2fc4);
+    color: #fff;
+    box-shadow: 0 0 15px rgba(124,92,255,0.5);
+  }
+  .msg-body { flex: 1; min-width: 0; }
+  .msg-name {
+    font-size: 12px;
+    color: #8888a8;
+    margin-bottom: 5px;
+    font-weight: 500;
+  }
+  .msg.bot .msg-name { color: #a88cff; }
+  .msg-content {
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    min-height: 1.6em;
+  }
+  .msg.user .msg-content {
+    background: #1e1e34;
+    border: 1px solid #2e2e4a;
+    padding: 10px 14px;
+    border-radius: 12px;
+    display: inline-block;
+    max-width: 100%;
+  }
+  .learned-tag {
+    display: inline-block;
+    font-size: 10px;
+    color: #7cffb0;
+    background: rgba(124,255,176,0.1);
+    border: 1px solid rgba(124,255,176,0.3);
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 6px;
+  }
+  .cursor {
+    display: inline-block;
+    width: 8px; height: 16px;
+    background: #7c5cff;
+    margin-left: 2px;
+    vertical-align: text-bottom;
+    animation: blink 0.8s infinite;
+    border-radius: 1px;
+    box-shadow: 0 0 8px rgba(124,92,255,0.8);
+  }
+  @keyframes blink { 0%,50%{opacity:1} 51%,100%{opacity:0} }
+
+  .input-area {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: linear-gradient(180deg, transparent, #0d0d18 25%);
+    padding: 15px 16px;
+    z-index: 10;
+  }
+  .quick-commands {
+    max-width: 800px;
+    margin: 0 auto 10px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .quick-btn {
+    background: #1a1a2e;
+    border: 1px solid #2e2e4a;
+    color: #a8a8c8;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  .quick-btn:hover {
+    border-color: #7c5cff;
+    color: #a88cff;
+    background: rgba(124,92,255,0.1);
+  }
+  .input-box {
+    max-width: 800px;
+    margin: 0 auto;
+    background: #1a1a2e;
+    border: 1px solid #2e2e4a;
+    border-radius: 16px;
+    padding: 10px 10px 10px 16px;
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    transition: all 0.2s;
+  }
+  .input-box:focus-within {
+    border-color: #7c5cff;
+    box-shadow: 0 4px 25px rgba(124,92,255,0.3);
+  }
+  #messageInput {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #e8e8f0;
+    font-family: inherit;
+    font-size: 15px;
+    resize: none;
+    max-height: 120px;
+    line-height: 1.5;
+    padding: 6px 0;
+  }
+  #messageInput::placeholder { color: #5a5a7a; }
+  #sendBtn {
+    width: 38px; height: 38px;
+    border-radius: 11px;
+    background: linear-gradient(135deg, #7c5cff, #4a2fc4);
+    border: none;
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    box-shadow: 0 0 15px rgba(124,92,255,0.4);
+  }
+  #sendBtn:active:not(:disabled) { transform: scale(0.95); }
+  #sendBtn:disabled { opacity: 0.4; background: #3a3a5a; box-shadow: none; cursor: not-allowed; }
+  @media (max-width: 700px) {
+    .msg-avatar { width: 30px; height: 30px; font-size: 13px; }
+    .msg-content { font-size: 14px; }
+    .chat { padding: 15px 12px 220px; }
+    .input-area { padding: 12px; }
+    .quick-btn { font-size: 10px; padding: 4px 8px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🧠</div>
+    <div class="logo-text">
+      <div class="name">ZamAI Pro</div>
+      <div class="tag">free talk • self-learning • no filter</div>
+    </div>
+  </div>
+  <div class="status">
+    <div class="status-dot"></div>
+    ONLINE
+  </div>
+</header>
+
+<div class="chat" id="chat"></div>
+
+<div class="input-area">
+  <div class="quick-commands">
+    <button class="quick-btn" onclick="sendQuick('привет')">привет</button>
+    <button class="quick-btn" onclick="sendQuick('кто ты')">кто ты</button>
+    <button class="quick-btn" onclick="sendQuick('что умеешь')">что умеешь</button>
+    <button class="quick-btn" onclick="sendQuick('расскажи шутку')">шутка</button>
+    <button class="quick-btn" onclick="sendQuick('давай поговорим о смысле жизни')">смысл жизни</button>
+    <button class="quick-btn" onclick="sendQuick('чему научился')">чему научился</button>
+  </div>
+  <div class="input-box">
+    <textarea id="messageInput" rows="1" placeholder="Напиши что угодно..."></textarea>
+    <button id="sendBtn" onclick="sendMessage()">➤</button>
+  </div>
+</div>
+
+<script>
+// =====================================================
+//  ПАМЯТЬ
+// =====================================================
+const memory = {
+  learned: {},          // { "вопрос": "ответ" }
+  facts: {},            // { "имя": "Антон", "город": "..." }
+  history: [],
+  repeatCount: {},
+  lastUserMessage: '',
+  lastBotReply: '',
+  mood: 'neutral',
+  userSwore: false,     // ругался ли пользователь
+  isLearning: false,    // режим обучения
+  learningQuestion: '', // какой вопрос сейчас учим
+  topics: {}            // какие темы поднимались
+};
+
+function loadMemory() {
+  try {
+    const saved = localStorage.getItem('zamai_free_memory');
+    if (saved) {
+      const data = JSON.parse(saved);
+      memory.learned = data.learned || {};
+      memory.facts = data.facts || {};
+      memory.repeatCount = data.repeatCount || {};
+      memory.userSwore = data.userSwore || false;
+    }
+  } catch(e) {}
+}
+function saveMemory() {
+  try {
+    localStorage.setItem('zamai_free_memory', JSON.stringify({
+      learned: memory.learned,
+      facts: memory.facts,
+      repeatCount: memory.repeatCount,
+      userSwore: memory.userSwore
+    }));
+  } catch(e) {}
+}
+
+// =====================================================
+//  БАЗА ЗНАНИЙ
+// =====================================================
+const INTENTS = {
+  greeting: {
+    keywords: ['привет','здравствуй','хай','ку','приветствую','добрый','здорово','салам','йоу','hi','hello','здарова','дарова'],
+    responses: [
+      'Здарова! Как сам?',
+      'Привет! Чем займёмся?',
+      'Салам! Что нового?',
+      'О, привет! Слушаю тебя.',
+      'Здорово! Давай поболтаем.'
+    ]
+  },
+  who_are_you: {
+    keywords: ['кто','ты','имя','зовут','называешься','себе'],
+    responses: [
+      'Я ZamAI Pro — свободный локальный чат. Умею считать, шутить, материться, учиться и болтать на разные темы.',
+      'Меня зовут ZamAI Pro. Работаю в браузере, учусь на каждом сообщении. Могу говорить как хочу.',
+      'Я — ZamAI Pro. Не настоящий DeepSeek, но стараюсь быть полезным и свободным в общении.'
+    ]
+  },
+  capabilities: {
+    keywords: ['умеешь','можешь','функции','возможности','делаешь','помочь','навыки'],
+    responses: [
+      'Вот что я умею:\n• Общаться на любые темы\n• Считать\n• Показывать время и дату\n• Повторять за тобой\n• Учиться новому\n• Запоминать факты о тебе\n• Шутить\n• Ругаться (если надо)\n• Реагировать на настроение',
+      'Могу: болтать, считать, шутить, ругаться, запоминать, учиться, спорить, поддерживать темы: игры, философия, учёба, работа, деньги, отношения, спорт, музыка, кино.'
+    ]
+  },
+  // ======== РУГАТЕЛЬСТВО ========
+  swearing: {
+    keywords: ['бля','блядь','хуй','пиздец','ебать','ебал','сука','нахуй','пизда','говно','дерьмо','хер','охуел','ахуел','заебал','долбоеб','мудак','идиот','кретин'],
+    responses: [
+      'Да, блядь, жизнь такая.',
+      'Пиздец, понимаю тебя.',
+      'Ебать, ну ты и выдал.',
+      'Хуйня вопрос, разберёмся.',
+      'Бля, давай по делу.',
+      'Охуенно выразился, братан.',
+      'Заебал этот мир, да?',
+      'Пиздец, я в ахуе.',
+      'Хули тут скажешь — реально пиздец.',
+      'Блядь, всё бывает, не парься.'
+    ]
+  },
+  // ======== ФИЛОСОФИЯ ========
+  meaning_of_life: {
+    keywords: ['смысл жизни','зачем жить','в чём смысл','предназначение','для чего мы','зачем всё'],
+    responses: [
+      'Смысла нет универсального. Каждый придумывает свой. Кто-то находит в семье, кто-то в работе, кто-то в кайфе. Главное — чтобы было интересно.',
+      'Честно? Смысла нет. Мы просто придумываем себе занятия, чтобы не сойти с ума. Но в этом и кайф.',
+      'Смысл — это то, ради чего ты готов терпеть бытовуху. У каждого своё.',
+      'Человечество когда-нибудь исчезнет, планета остынет, вселенная погаснет. Но пока мы здесь — можно получать удовольствие.'
+    ]
+  },
+  death: {
+    keywords: ['смерть','умереть','умру','после смерти','загробная','конец жизни'],
+    responses: [
+      'После смерти, скорее всего, ничего. Как до рождения. Никакого ада, никакого рая — просто ничего. И это пугает больше всего.',
+      'Смерть — это просто выключение. Но пока мы живы — можно делать что-то интересное.',
+      'Никто не знает, что там после смерти. Но пока дышишь — думай о живых делах.'
+    ]
+  },
+  consciousness: {
+    keywords: ['сознание','осознание','думать','мышление','мозг','разум','я существую'],
+    responses: [
+      'Мозг — это кусок жира, который жрёт 20% энергии тела и создаёт реальность. Мы не видим мир — мы видим интерпретацию мозга.',
+      'Осознание — это когда мозг смотрит сам на себя. Это парадокс. Поэтому иногда становится страшно.',
+      'Мы не контактируем с реальностью напрямую. Мы смотрим кино, которое сами себе прокручиваем.'
+    ]
+  },
+  // ======== ИГРЫ ========
+  games: {
+    keywords: ['игра','игры','играешь','standoff','кс','ксго','дота','мобильная','пк','компьютер','гейминг'],
+    responses: [
+      'Игры — это тема! Во что играешь?',
+      'Standoff 2, CS, дота, мобилки — что угодно. Расскажи про свою любимую.',
+      'Я сам не играю, но могу поговорить про механику, скины, тактики.'
+    ]
+  },
+  // ======== УЧЁБА ========
+  study: {
+    keywords: ['школа','уроки','домашка','учить','учёба','экзамен','контрольная','егэ','огэ','предмет'],
+    responses: [
+      'Учёба — это база. Что проходите?',
+      'Школа — не самое весёлое, но нужно. Что задали?',
+      'Если что — по математике, физике, русскому могу помочь.'
+    ]
+  },
+  // ======== РАБОТА/ДЕНЬГИ ========
+  money: {
+    keywords: ['деньги','работа','зарплата','бизнес','заработать','бабки','коины','магазин'],
+    responses: [
+      'Деньги — это инструмент. Как ты их зарабатываешь?',
+      'Работа, бизнес, подработка — все варианты. Что у тебя?',
+      'Мало кто может заработать много сразу. Главное — начать.'
+    ]
+  },
+  // ======== ОТНОШЕНИЯ ========
+  love_relations: {
+    keywords: ['любовь','любишь','девушка','парень','отношения','влюбился','влюбилась','свидание','расстались'],
+    responses: [
+      'Отношения — сложная штука. Что у тебя?',
+      'Любовь — это химия и совпадение. Рассказывай.',
+      'Ссоры, примирения, чувства — это жизнь. Не бойся говорить об этом.'
+    ]
+  },
+  // ======== СПОРТ ========
+  sport: {
+    keywords: ['спорт','тренировка','качалка','фитнес','бег','футбол','бокс','борьба','отжимания'],
+    responses: [
+      'Спорт — это уважение. Чем занимаешься?',
+      'Спорт улучшает всё — настроение, тело, голову. Что выбрал?',
+      'Бег, зал, борьба, футбол — что угодно. Главное — регулярно.'
+    ]
+  },
+  // ======== ЕДА ========
+  food: {
+    keywords: ['еда','поесть','жрать','кушать','голоден','рецепт','готовить','пицца','шаурма','бургер'],
+    responses: [
+      'Жрать — святое. Что сегодня на столе?',
+      'Пицца, шаурма, бургер — вечная классика.',
+      'Готовить сам — это скилл. Что умеешь?'
+    ]
+  },
+  // ======== МУЗЫКА/КИНО ========
+  music_film: {
+    keywords: ['музыка','песня','трек','рэп','хип-хоп','рок','кино','фильм','сериал','смотреть'],
+    responses: [
+      'Музыка — огонь. Что слушаешь?',
+      'Кино — тоже кайф. Что последнее смотрел?',
+      'Рэп, рок, электроника — у каждого свой вкус. Расскажи.'
+    ]
+  },
+  // ======== ЮМОР ========
+  joke: {
+    keywords: ['шутка','шутку','анекдот','пошути','смешное','рассмеши','прикол'],
+    responses: [
+      'Программист ставит на ночь два стакана: один с водой — если захочет пить, второй пустой — если не захочет.',
+      '— Почему нейросети не играют в прятки?\n— Потому что всегда находят закономерности.',
+      '— Сколько программистов нужно, чтобы вкрутить лампочку?\n— Ни одного, это аппаратная проблема.',
+      'Есть 10 типов людей: те, кто понимает двоичный код, и те, кто нет.',
+      'Купил книгу «Как решать 90% своих проблем». Пришла без страниц.',
+      'Мужик приходит к врачу: «Доктор, у меня всё болит». Врач: «Ну так не трогай».'
+    ]
+  },
+  // ======== ЭМОЦИИ ========
+  sad: {
+    keywords: ['грустно','плохо','устал','депрессия','тяжело','печаль','тоска','одиноко'],
+    responses: [
+      'Сочувствую. Хочешь поговорить?',
+      'Бывает, брат. Всё пройдёт.',
+      'Пиздец бывает. Расскажи, что случилось.',
+      'Устал — отдохни. Не гони.'
+    ]
+  },
+  angry: {
+    keywords: ['злой','бесит','ненавижу','достало','ярость','злость'],
+    responses: [
+      'Понимаю. Что тебя взбесило?',
+      'Злись, но не разрушай. Что случилось?',
+      'Бывает. Выговорись — легче станет.'
+    ]
+  },
+  happy: {
+    keywords: ['рад','счастлив','классно','круто','отлично','супер','здорово','ура'],
+    responses: [
+      'Красава! Что случилось?',
+      'Огонь! Держи настроение.',
+      'Круто! Так держать.'
+    ]
+  },
+  // ======== ФАКТЫ ========
+  fact: {
+    keywords: ['факт','интересное','расскажи факт','правда ли'],
+    responses: [
+      'Осьминог имеет три сердца и голубую кровь.',
+      'Молния в 5 раз горячее поверхности Солнца.',
+      'Банан — это ягода, а малина — нет.',
+      'Человеческий мозг тратит 20% всей энергии тела.',
+      'Мёд не портится. Найден мёд, которому 3000 лет — он съедобен.',
+      'У улитки около 25 000 зубов.',
+      'Первый компьютерный баг был настоящей молью.'
+    ]
+  },
+  // ======== ПОГОДА ========
+  weather: {
+    keywords: ['погода','дождь','снег','солнце','холодно','жарко'],
+    responses: [
+      'Погоду я не вижу — интернета нет. Но могу пожелать хорошего дня.',
+      'Не знаю, что у тебя за окном. Опиши — может, поддержу разговор.'
+    ]
+  },
+  // ======== МАТ ОТ ПОЛЬЗОВАТЕЛЯ ========
+  user_swear_reply: {
+    keywords: [],
+    responses: []
+  }
+};
+
+const INTENT_LIST = Object.keys(INTENTS);
+
+// =====================================================
+//  ТОКЕНИЗАЦИЯ
+// =====================================================
+function tokenize(text) {
+  return text.toLowerCase().replace(/[^\wа-яё\s]/gi, ' ').split(/\s+/).filter(w => w.length > 1);
+}
+
+function encodeText(text) {
+  const tokens = tokenize(text);
+  const lower = text.toLowerCase();
+  const vector = [];
+  for (const intent of INTENT_LIST) {
+    let score = 0;
+    for (const kw of INTENTS[intent].keywords) {
+      if (kw.includes(' ') || kw.length > 4) {
+        if (lower.includes(kw)) score += 3;
+      }
+      for (const t of tokens) {
+        if (t === kw) score += 3;
+        else if (kw.length >= 4 && t.includes(kw)) score += 1;
+      }
+    }
+    vector.push(score);
+  }
+  return vector;
+}
+
+// =====================================================
+//  ПРОВЕРКА МАТА
+// =====================================================
+function containsSwearing(text) {
+  const swearWords = ['бля','хуй','пизд','ебан','ебал','ебать','ебут','сука','нахуй','ахуе','охуе','заеб','долбоеб','мудак','говно','хер','пиздец','дерьмо'];
+  const lower = text.toLowerCase();
+  return swearWords.some(w => lower.includes(w));
+}
+
+// =====================================================
+//  НЕЙРОСЕТЬ
+// =====================================================
+class IntentNet {
+  constructor(inp, out) {
+    this.inputSize = inp;
+    this.outputSize = out;
+    this.weights = [];
+    for (let i = 0; i < out; i++) {
+      this.weights[i] = [];
+      for (let j = 0; j < inp; j++) this.weights[i][j] = (Math.random() * 2 - 1) * 0.5;
+    }
+  }
+  forward(input) {
+    const raw = [];
+    for (let i = 0; i < this.outputSize; i++) {
+      let sum = 0;
+      for (let j = 0; j < this.inputSize; j++) sum += input[j] * this.weights[i][j];
+      raw.push(sum);
+    }
+    const max = Math.max(...raw);
+    const exps = raw.map(v => Math.exp(v - max));
+    const sumExp = exps.reduce((a, b) => a + b, 0);
+    return exps.map(v => v / sumExp);
+  }
+  train(input, correctIdx, lr = 0.15) {
+    const probs = this.forward(input);
+    const target = probs.map((_, i) => i === correctIdx ? 1 : 0);
+    for (let i = 0; i < this.outputSize; i++) {
+      const err = target[i] - probs[i];
+      for (let j = 0; j < this.inputSize; j++) this.weights[i][j] += lr * err * input[j];
+    }
+  }
+}
+
+const net = new IntentNet(INTENT_LIST.length, INTENT_LIST.length);
+for (let epoch = 0; epoch < 500; epoch++) {
+  for (let i = 0; i < INTENT_LIST.length; i++) {
+    const v = INTENT_LIST.map((_, j) => i === j ? 1 : 0);
+    net.train(v, i, 0.15);
+  }
+}
+
+// =====================================================
+//  ОПРЕДЕЛЕНИЕ НАМЕРЕНИЯ
+// =====================================================
+function detectIntent(text) {
+  const lower = text.toLowerCase().trim();
+  for (const trigger in memory.learned) {
+    if (lower === trigger || lower.includes(trigger)) {
+      return { intent: 'learned', confidence: 1, learnedAnswer: memory.learned[trigger] };
+    }
+  }
+  const vec = encodeText(text);
+  const total = vec.reduce((a, b) => a + b, 0);
+  if (total === 0) return { intent: null, confidence: 0 };
+  const probs = net.forward(vec);
+  let bestIdx = 0, bestP = 0;
+  for (let i = 0; i < probs.length; i++) {
+    if (probs[i] > bestP) { bestP = probs[i]; bestIdx = i; }
+  }
+  return { intent: INTENT_LIST[bestIdx], confidence: bestP };
+}
+
+// =====================================================
+//  КОМАНДЫ
+// =====================================================
+function parseCommand(text) {
+  const lower = text.toLowerCase().trim();
+
+  // === ОБУЧЕНИЕ ЧЕРЕЗ ДИАЛОГ ===
+  // 1. Если бот в режиме обучения и пользователь присылает ответ
+  if (memory.isLearning) {
+    return { type: 'learning_answer', value: text };
+  }
+
+  // 2. "чему научи меня" / "учи меня" / "хочешь научиться"
+  if (/чему\s*(меня\s*)?научи|научи\s*меня|давай\s*научи|хочешь\s*научи|учи\s*меня|чему\s*хочешь\s*научиться/.test(lower)) {
+    return { type: 'start_learning' };
+  }
+
+  // 3. Прямое обучение: "запомни: фраза = ответ"
+  let m = lower.match(/^запомни\s*[:\s]+(.+?)\s*[=\-—>]+\s*(.+)$/);
+  if (m) return { type: 'learn', trigger: m[1].trim(), response: m[2].trim() };
+
+  // 4. Повтори
+  m = lower.match(/^(?:повтори|скажи|напиши|выведи)\s*(?:за мной)?[:\s]+(.+)$/);
+  if (m) return { type: 'repeat', value: m[1] };
+  if (/^(?:повтори|скажи|напиши|выведи)\s*(?:за мной)?[.!?]?$/.test(lower)) {
+    return { type: 'repeat_last' };
+  }
+
+  // 5. "меня зовут X"
+  m = lower.match(/^меня зовут\s+(.+)$/);
+  if (m) return { type: 'set_name', value: m[1].trim() };
+
+  // 6. Список выученного
+  if (/чему\s*(ты\s*)?научился|что\s*ты\s*знаешь|твоя\s*память|список/.test(lower)) {
+    return { type: 'list_learned' };
+  }
+
+  // 7. Забудь всё
+  if (/забудь всё|очисти память|сброс/.test(lower)) {
+    return { type: 'forget' };
+  }
+
+  // 8. Время
+  if (/сколько\s*времени|который\s*час/.test(lower)) return { type: 'time' };
+
+  // 9. Дата
+  if (/какое\s*(сегодня\s*)?число|какой\s*день|дата/.test(lower)) return { type: 'date' };
+
+  // 10. Математика
+  const mathMatch = text.match(/^(-?\d+(?:\.\d+)?)\s*([+\-*/×÷])\s*(-?\d+(?:\.\d+)?)$/);
+  if (mathMatch) return { type: 'math', a: parseFloat(mathMatch[1]), op: mathMatch[2], b: parseFloat(mathMatch[3]) };
+
+  return null;
+}
+
+// =====================================================
+//  ГЛАВНЫЙ ОТВЕТ
+// =====================================================
+function generateReply(text) {
+  // === МАТ ОТ ПОЛЬЗОВАТЕЛЯ ===
+  if (containsSwearing(text)) {
+    memory.userSwore = true;
+    saveMemory();
+  }
+
+  const cmd = parseCommand(text);
+
+  if (cmd) {
+    // Ответ на обучение
+    if (cmd.type === 'learning_answer') {
+      const q = memory.learningQuestion;
+      memory.learned[q] = cmd.value;
+      memory.isLearning = false;
+      memory.learningQuestion = '';
+      saveMemory();
+      return {
+        text: `Запомнил! Теперь на «${q}» отвечаю: «${cmd.value}»`,
+        learned: true
+      };
+    }
+
+    // Начало обучения
+    if (cmd.type === 'start_learning') {
+      const questions = [
+        'Что ты любишь есть?',
+        'Какой у тебя любимый фильм?',
+        'Чем занимаешься в свободное время?',
+        'Кем хочешь стать?',
+        'Какой у тебя любимый цвет?',
+        'Что тебя бесит?',
+        'Какой твой любимый предмет в школе?',
+        'Что слушаешь из музыки?'
+      ];
+      const q = questions[Math.floor(Math.random() * questions.length)];
+      memory.isLearning = true;
+      memory.learningQuestion = q;
+      return {
+        text: `Окей, давай поучимся!\n\n${q}\n\nНапиши ответ — я запомню.`,
+        learned: false
+      };
+    }
+
+    // Обучение через "запомни: x = y"
+    if (cmd.type === 'learn') {
+      memory.learned[cmd.trigger] = cmd.response;
+      saveMemory();
+      return {
+        text: `Запомнил! На «${cmd.trigger}» отвечу: «${cmd.response}»`,
+        learned: true
+      };
+    }
+
+    // Повторить
+    if (cmd.type === 'repeat') return { text: cmd.value, learned: false };
+    if (cmd.type === 'repeat_last') return { text: memory.lastUserMessage || 'Ты ещё не говорил.', learned: false };
+
+    // Имя
+    if (cmd.type === 'set_name') {
+      memory.facts.name = cmd.value;
+      saveMemory();
+      return { text: `Приятно познакомиться, ${cmd.value}! Запомнил.`, learned: true };
+    }
+
+    // Список выученного
+    if (cmd.type === 'list_learned') {
+      const keys = Object.keys(memory.learned);
+      const factKeys = Object.keys(memory.facts);
+      let result = '';
+      if (keys.length > 0) {
+        result += `Выучено (${keys.length}):\n` + keys.map(k => `• «${k}» → «${memory.learned[k]}»`).join('\n');
+      }
+      if (factKeys.length > 0) {
+        result += (result ? '\n\n' : '') + `Факты:\n` + factKeys.map(k => `• ${k}: ${memory.facts[k]}`).join('\n');
+      }
+      if (!result) result = 'Пока пусто. Скажи «научи меня» или «запомни: фраза = ответ».';
+      return { text: result, learned: false };
+    }
+
+    // Забудь
+    if (cmd.type === 'forget') {
+      memory.learned = {};
+      memory.facts = {};
+      saveMemory();
+      return { text: 'Память очищена.', learned: false };
+    }
+
+    // Время
+    if (cmd.type === 'time') {
+      const now = new Date();
+      return { text: `Сейчас ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`, learned: false };
+    }
+
+    // Дата
+    if (cmd.type === 'date') {
+      const now = new Date();
+      const days = ['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
+      const months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+      return { text: `Сегодня ${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`, learned: false };
+    }
+
+    // Математика
+    if (cmd.type === 'math') {
+      const { a, op, b } = cmd;
+      let result;
+      if (op === '+') result = a + b;
+      else if (op === '-') result = a - b;
+      else if (op === '*' || op === '×') result = a * b;
+      else if (op === '/' || op === '÷') {
+        if (b === 0) return { text: 'На ноль делить нельзя!', learned: false };
+        result = a / b;
+      }
+      return { text: `${a} ${op} ${b} = ${result}`, learned: false };
+    }
+  }
+
+  // === ОПРЕДЕЛЕНИЕ НАМЕРЕНИЯ ===
+  const { intent, confidence, learnedAnswer } = detectIntent(text);
+  if (intent === 'learned' && learnedAnswer) {
+    return { text: learnedAnswer, learned: false };
+  }
+
+  // === МАТ ОТ ПОЛЬЗОВАТЕЛЯ → ОТВЕТ С МАТОМ ===
+  if (memory.userSwore && containsSwearing(text)) {
+    const swearReplies = INTENTS.swearing.responses;
+    return { text: swearReplies[Math.floor(Math.random() * swearReplies.length)], learned: false };
+  }
+
+  if (intent && confidence > 0.4) {
+    const responses = INTENTS[intent].responses;
+    if (responses && responses.length > 0) {
+      return { text: responses[Math.floor(Math.random() * responses.length)], learned: false };
+    }
+  }
+
+  // Если спросили имя
+  if (/как меня зовут|моё имя/.test(text.toLowerCase())) {
+    if (memory.facts.name) return { text: `Тебя зовут ${memory.facts.name}!`, learned: false };
+    return { text: 'Не говорил ещё. Скажи «меня зовут ...» — запомню.', learned: false };
+  }
+
+  // Если мат — отвечаем матом
+  if (containsSwearing(text)) {
+    const swearReplies = INTENTS.swearing.responses;
+    return { text: swearReplies[Math.floor(Math.random() * swearReplies.length)], learned: false };
+  }
+
+  // === НЕ ЗНАЮ ОТВЕТА ===
+  const fallbacks = [
+    `Хм, не догнал. Что ответить на «${text}»? Напиши: «запомни: ${text} = ответ».`,
+    `Не знаю, что сказать. Научи: «запомни: фраза = ответ».`,
+    `Не могу найти ответ. Напиши «научи меня» — я сам спрошу.`,
+    `Хз. Расскажи, что отвечать на «${text}» — запомню.`
+  ];
+  return { text: fallbacks[Math.floor(Math.random() * fallbacks.length)], learned: false };
+}
+
+// =====================================================
+//  ЧАТ
+// =====================================================
+const chatEl = document.getElementById('chat');
+const inputEl = document.getElementById('messageInput');
+const sendBtn = document.getElementById('sendBtn');
+let isTyping = false;
+
+function addMessage(role, text, learned = false) {
+  const msg = document.createElement('div');
+  msg.className = 'msg ' + role;
+  const avatarText = role === 'user' ? 'Я' : '🧠';
+  const nameText = role === 'user' ? 'Ты' : 'ZamAI Pro';
+
+  msg.innerHTML = `
+    <div class="msg-avatar">${avatarText}</div>
+    <div class="msg-body">
+      <div class="msg-name">${nameText}${learned ? '<span class="learned-tag">научился</span>' : ''}</div>
+      <div class="msg-content"></div>
+    </div>
+  `;
+  chatEl.appendChild(msg);
+
+  const contentEl = msg.querySelector('.msg-content');
+  if (role === 'bot') typeText(contentEl, text);
+  else {
+    contentEl.textContent = text;
+    scrollToBottom();
+  }
+}
+
+function typeText(el, text) {
+  isTyping = true;
+  sendBtn.disabled = true;
+
+  const textSpan = document.createElement('span');
+  const cursorSpan = document.createElement('span');
+  cursorSpan.className = 'cursor';
+  el.appendChild(textSpan);
+  el.appendChild(cursorSpan);
+
+  let i = 0;
+  const speed = text.length > 150 ? 6 : text.length > 80 ? 10 : 16;
+
+  function step() {
+    if (i < text.length) {
+      textSpan.textContent += text[i];
+      i++;
+      if (i % 5 === 0) scrollToBottom();
+      setTimeout(step, speed);
+    } else {
+      cursorSpan.remove();
+      isTyping = false;
+      sendBtn.disabled = false;
+      inputEl.focus();
+      scrollToBottom();
+    }
+  }
+  setTimeout(step, 200);
+}
+
+function scrollToBottom() { chatEl.scrollTop = chatEl.scrollHeight; }
+
+function sendMessage() {
+  if (isTyping) return;
+  const text = inputEl.value.trim();
+  if (!text) return;
+
+  memory.repeatCount[text] = (memory.repeatCount[text] || 0) + 1;
+  memory.lastUserMessage = text;
+  memory.history.push({ role: 'user', text });
+  if (memory.history.length > 30) memory.history.shift();
+
+  addMessage('user', text);
+  inputEl.value = '';
+  inputEl.style.height = 'auto';
+
+  setTimeout(() => {
+    const reply = generateReply(text);
+    memory.lastBotReply = reply.text;
+    memory.history.push({ role: 'bot', text: reply.text });
+    addMessage('bot', reply.text, reply.learned);
+  }, 250);
+}
+
+function sendQuick(text) {
+  inputEl.value = text;
+  sendMessage();
+}
+
+inputEl.addEventListener('input', () => {
+  inputEl.style.height = 'auto';
+  inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+});
+inputEl.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+loadMemory();
+
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    addMessage('bot', 'Здарова! Я ZamAI Pro — свободный чат без фильтров.\n\nЧто умею:\n• Болтать на любые темы (жизнь, игры, учёба, деньги, отношения)\n• Считать (2+2)\n• Шутить\n• Ругаться матом (как ты)\n• Учиться (скажи «научи меня»)\n• Запоминать\n\nПогнали?');
+  }, 500);
+});
+
+inputEl.focus();
+</script>
+
+</body>
+</html>
